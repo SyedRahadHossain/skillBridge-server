@@ -13,3 +13,171 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── ENUMS
+
+enum Role {
+  student
+  tutor
+  admin
+}
+
+enum BookingStatus {
+  confirmed
+  completed
+  cancelled
+}
+
+// ─── BETTER AUTH TABLES 
+
+model User {
+   id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  role          Role     @default(student)
+  isActive      Boolean  @default(true)
+
+  sessions     Session[]
+  accounts     Account[]
+  tutorProfile TutorProfile?
+  bookings     Booking[]     @relation("StudentBookings")
+  reviews      Review[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ─── APP TABLES
+
+model TutorProfile {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  hourlyRate   Float
+  experience   Int?
+  rating       Float    @default(0)
+  totalReviews Int      @default(0)
+  availability Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categories   TutorCategory[]
+  bookings     Booking[]
+  reviews      Review[]
+
+  @@index([rating])
+  @@index([hourlyRate])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  icon      String?
+  createdAt DateTime @default(now())
+
+  tutors    TutorCategory[]
+}
+
+model TutorCategory {
+  tutorProfileId Int
+  categoryId     Int
+  tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([tutorProfileId, categoryId])
+  @@index([categoryId])
+}
+
+model Booking {
+  id             Int           @id @default(autoincrement())
+  studentId      String
+  tutorProfileId Int
+  student        User          @relation("StudentBookings", fields: [studentId], references: [id])
+  tutorProfile   TutorProfile  @relation(fields: [tutorProfileId], references: [id])
+  scheduledAt    DateTime
+  duration       Int
+  totalPrice     Float
+  status         BookingStatus @default(confirmed)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  review         Review?
+
+  @@index([studentId])
+  @@index([tutorProfileId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([studentId, status])
+  @@index([tutorProfileId, status])
+}
+
+model Review {
+  id             Int          @id @default(autoincrement())
+  bookingId      Int          @unique
+  studentId      String
+  tutorProfileId Int
+  booking        Booking      @relation(fields: [bookingId], references: [id])
+  student        User         @relation(fields: [studentId], references: [id])
+  tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id])
+  rating         Int
+  comment        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([tutorProfileId])
+  @@index([studentId])
+  @@index([tutorProfileId, rating])
+}
