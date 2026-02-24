@@ -30,7 +30,7 @@ enum BookingStatus {
 // ─── BETTER AUTH TABLES 
 
 model User {
-   id            String   @id
+  id            String   @id
   name          String
   email         String   @unique
   emailVerified Boolean
@@ -38,8 +38,8 @@ model User {
   createdAt     DateTime
   updatedAt     DateTime
 
-  role          Role     @default(student)
-  isActive      Boolean  @default(true)
+  role     Role    @default(student)
+  isActive Boolean @default(true)
 
   sessions     Session[]
   accounts     Account[]
@@ -115,9 +115,9 @@ model TutorProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  categories   TutorCategory[]
-  bookings     Booking[]
-  reviews      Review[]
+  categories TutorCategory[]
+  bookings   Booking[]
+  reviews    Review[]
 
   @@index([rating])
   @@index([hourlyRate])
@@ -129,7 +129,7 @@ model Category {
   icon      String?
   createdAt DateTime @default(now())
 
-  tutors    TutorCategory[]
+  tutors TutorCategory[]
 }
 
 model TutorCategory {
@@ -155,7 +155,7 @@ model Booking {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  review         Review?
+  review Review?
 
   @@index([studentId])
   @@index([tutorProfileId])
