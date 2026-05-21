@@ -1,5 +1,5 @@
-import { prisma } from "../../../lib/prisma";
-import paginationSortingHelper from "../../../helpers/paginationSortingHelper";
+import paginationSortingHelper from "../../helpers/paginationSortingHelper";
+import { prisma } from "../../lib/prisma";
 
 const getMyProfile = async (userId: string) => {
   const tutor = await prisma.tutorProfile.findUnique({
