@@ -2,18 +2,21 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./prisma";
 
-// If your Prisma file is located elsewhere, you can change the path
-
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET!,
+  baseURL: process.env.BETTER_AUTH_URL!,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  trustedOrigins: [process.env.APP_URL!],
-
+  trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+  },
   user: {
     additionalFields: {
       role: {
-        type: "string", // Better Auth treats it as string internally
+        type: "string",
         required: true,
         defaultValue: "student",
         input: true,
@@ -24,10 +27,5 @@ export const auth = betterAuth({
         input: false,
       },
     },
-  },
-
-  // email & password
-  emailAndPassword: {
-    enabled: true,
   },
 });
