@@ -4,6 +4,7 @@ import { tutorRouter } from "../modules/tutor/tutor.router";
 import { categoryRouter } from "../modules/category/category.router";
 import { bookingRouter } from "../modules/booking/booking.router";
 import { reviewRouter } from "../modules/review/review.router";
+import { adminRouter } from "../modules/admin/admin.router";
 
 const router: Router = express.Router();
 
@@ -12,5 +13,6 @@ router.use("/tutors", tutorRouter);
 router.use("/categories", categoryRouter);
 router.use("/bookings", bookingRouter);
 router.use("/reviews", reviewRouter);
+router.use("/admin", adminRouter);
 
 export default router;
