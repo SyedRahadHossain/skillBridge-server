@@ -1,4 +1,5 @@
-import { BookingStatus } from "../../generated/prisma/enums";
+// import { BookingStatus } from "../../generated/prisma/enums";
+import { BookingStatus } from "../../generated/enums";
 import { prisma } from "../../lib/prisma";
 
 const bookingInclude = {
