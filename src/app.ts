@@ -17,6 +17,7 @@ app.use(
 
 app.use(express.json());
 
+//better auth handler
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use("/api", router);
