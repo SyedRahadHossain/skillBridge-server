@@ -106,7 +106,8 @@ const getAllBookings = async (query: {
   sortOrder?: string;
 }) => {
   const { page, limit, skip, sortBy, sortOrder } =
-    require("../../../helpers/paginationSortingHelper").default(query);
+    // require("../../../helpers/paginationSortingHelper").default(query);
+    require("../../helpers/paginationSortingHelper.ts").default(query);
 
   const [bookings, total] = await Promise.all([
     prisma.booking.findMany({
