@@ -1,5 +1,5 @@
+import { BookingStatus } from "../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
-import { BookingStatus } from "../../../generated/prisma/enums";
 
 const bookingInclude = {
   student: { select: { id: true, name: true, image: true } },

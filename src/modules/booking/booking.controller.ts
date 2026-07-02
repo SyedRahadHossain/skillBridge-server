@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import { BookingStatus } from "../../generated/prisma/enums";
 import { bookingService } from "./booking.service";
-import { BookingStatus } from "../../../generated/prisma/enums";
 
 const createBooking = async (
   req: Request,

@@ -1,4 +1,4 @@
-import { Role } from "../../../generated/prisma/enums";
+import { Role } from "../../generated/prisma/enums";
 import paginationSortingHelper from "../../helpers/paginationSortingHelper";
 import { prisma } from "../../lib/prisma";
 
