@@ -302,7 +302,11 @@ var auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql"
   }),
-  trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
+  // trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://skillbridge-theta-plum.vercel.app"
+  ],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false
@@ -1213,7 +1217,10 @@ var globalErrorHandler_default = errorHandler;
 var app = express8();
 app.use(
   cors({
-    origin: process.env.APP_URL || "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://skillbridge-theta-plum.vercel.app"
+    ],
     credentials: true
   })
 );
