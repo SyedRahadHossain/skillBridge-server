@@ -18,7 +18,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://skillbridge-theta-plum.vercel.app",
+      "https://skillbridge-grow.vercel.app",
     ],
     credentials: true,
   }),

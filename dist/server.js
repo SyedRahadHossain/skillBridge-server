@@ -305,11 +305,22 @@ var auth = betterAuth({
   // trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
   trustedOrigins: [
     "http://localhost:3000",
-    "https://skillbridge-theta-plum.vercel.app"
+    "https://skillbridge-grow.vercel.app"
   ],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false
+  },
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: false
+    },
+    defaultCookieAttributes: {
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      partitioned: true
+    }
   },
   user: {
     additionalFields: {
@@ -1219,7 +1230,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://skillbridge-theta-plum.vercel.app"
+      "https://skillbridge-grow.vercel.app"
     ],
     credentials: true
   })

@@ -11,7 +11,7 @@ export const auth = betterAuth({
   // trustedOrigins: [process.env.APP_URL || "http://localhost:3000"],
   trustedOrigins: [
     "http://localhost:3000",
-    "https://skillbridge-theta-plum.vercel.app",
+    "https://skillbridge-grow.vercel.app",
   ],
   emailAndPassword: {
     enabled: true,
