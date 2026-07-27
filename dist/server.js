@@ -749,6 +749,12 @@ var bookingInclude = {
     }
   }
 };
+function timeStringToMinutes(time) {
+  const parts = time.split(":");
+  const h = parseInt(parts[0] ?? "0", 10);
+  const m = parseInt(parts[1] ?? "0", 10);
+  return h * 60 + m;
+}
 var createBooking = async (data) => {
   const tutor = await prisma.tutorProfile.findUnique({
     where: { id: data.tutorProfileId }
@@ -765,14 +771,14 @@ var createBooking = async (data) => {
       "Friday",
       "Saturday"
     ];
-    const bookingDay = dayNames[data.scheduledAt.getDay()] ?? "Unknown";
+    const bookingDay2 = data.bookingDay ?? dayNames[data.scheduledAt.getDay()] ?? "Unknown";
     const dayAvailability = availability.find(
-      (a) => a.day.toLowerCase() === bookingDay.toLowerCase()
+      (a) => a.day.toLowerCase() === bookingDay2.toLowerCase()
     );
     if (!dayAvailability) {
-      throw new Error(`Tutor is not available on ${bookingDay}`);
+      throw new Error(`Tutor is not available on ${bookingDay2}`);
     }
-    const bookingStartMinutes = data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
+    const bookingStartMinutes = data.startTime ? timeStringToMinutes(data.startTime) : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
     const bookingEndMinutes = bookingStartMinutes + data.duration;
     const [fromH = 0, fromM = 0] = dayAvailability.from.split(":").map(Number);
     const [toH = 23, toM = 59] = dayAvailability.to.split(":").map(Number);
@@ -780,13 +786,14 @@ var createBooking = async (data) => {
     const availableTo = toH * 60 + toM;
     if (bookingStartMinutes < availableFrom || bookingEndMinutes > availableTo) {
       throw new Error(
-        `Tutor is only available from ${dayAvailability.from} to ${dayAvailability.to} on ${bookingDay}`
+        `Tutor is only available from ${dayAvailability.from} to ${dayAvailability.to} on ${bookingDay2}`
       );
     }
   }
   const totalPrice = Math.round(tutor.hourlyRate / 60 * data.duration * 100) / 100;
+  const { startTime, bookingDay, ...bookingData } = data;
   return await prisma.booking.create({
-    data: { ...data, totalPrice, status: "confirmed" },
+    data: { ...bookingData, totalPrice, status: "confirmed" },
     include: bookingInclude
   });
 };
@@ -866,7 +873,9 @@ var createBooking2 = async (req, res, next) => {
       studentId: user.id,
       tutorProfileId: Number(req.body.tutorProfileId),
       scheduledAt: new Date(req.body.scheduledAt),
-      duration: Number(req.body.duration)
+      duration: Number(req.body.duration),
+      startTime: req.body.startTime,
+      bookingDay: req.body.bookingDay
     });
     res.status(201).json(result);
   } catch (e) {

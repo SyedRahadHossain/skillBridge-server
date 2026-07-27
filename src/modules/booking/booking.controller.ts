@@ -18,6 +18,8 @@ const createBooking = async (
       tutorProfileId: Number(req.body.tutorProfileId),
       scheduledAt: new Date(req.body.scheduledAt),
       duration: Number(req.body.duration),
+      startTime: req.body.startTime,
+      bookingDay: req.body.bookingDay,
     });
     res.status(201).json(result);
   } catch (e) {
