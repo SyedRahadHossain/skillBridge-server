@@ -1,4 +1,3 @@
-// import { BookingStatus } from "../../generated/prisma/enums";
 import { BookingStatus } from "../../generated/enums";
 import { prisma } from "../../lib/prisma";
 
@@ -21,19 +20,58 @@ const createBooking = async (data: {
     where: { id: data.tutorProfileId },
   });
 
-  if (!tutor) {
-    throw new Error("Tutor not found!");
+  if (!tutor) throw new Error("Tutor not found!");
+
+  // Availability check
+  const availability = tutor.availability as Array<{
+    day: string;
+    from: string;
+    to: string;
+  }>;
+
+  if (availability && availability.length > 0) {
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    const bookingDay = dayNames[data.scheduledAt.getDay()] ?? "Unknown";
+    const dayAvailability = availability.find(
+      (a) => a.day.toLowerCase() === bookingDay.toLowerCase(),
+    );
+
+    if (!dayAvailability) {
+      throw new Error(`Tutor is not available on ${bookingDay}`);
+    }
+
+    const bookingStartMinutes =
+      data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
+    const bookingEndMinutes = bookingStartMinutes + data.duration;
+
+    const [fromH = 0, fromM = 0] = dayAvailability.from.split(":").map(Number);
+    const [toH = 23, toM = 59] = dayAvailability.to.split(":").map(Number);
+    const availableFrom = fromH * 60 + fromM;
+    const availableTo = toH * 60 + toM;
+
+    if (
+      bookingStartMinutes < availableFrom ||
+      bookingEndMinutes > availableTo
+    ) {
+      throw new Error(
+        `Tutor is only available from ${dayAvailability.from} to ${dayAvailability.to} on ${bookingDay}`,
+      );
+    }
   }
 
   const totalPrice =
     Math.round((tutor.hourlyRate / 60) * data.duration * 100) / 100;
 
   return await prisma.booking.create({
-    data: {
-      ...data,
-      totalPrice,
-      status: "confirmed",
-    },
+    data: { ...data, totalPrice, status: "confirmed" },
     include: bookingInclude,
   });
 };
@@ -55,16 +93,13 @@ const getBookingById = async (bookingId: number, userId: string) => {
     include: { ...bookingInclude, review: true },
   });
 
-  if (!booking) {
-    throw new Error("Booking not found!");
-  }
+  if (!booking) throw new Error("Booking not found!");
 
   const isStudent = booking.studentId === userId;
   const isTutor = booking.tutorProfile.userId === userId;
 
-  if (!isStudent && !isTutor) {
+  if (!isStudent && !isTutor)
     throw new Error("You are not authorized to view this booking!");
-  }
 
   return booking;
 };
@@ -106,7 +141,6 @@ const getAllBookings = async (query: {
   sortOrder?: string;
 }) => {
   const { page, limit, skip, sortBy, sortOrder } =
-    // require("../../../helpers/paginationSortingHelper").default(query);
     require("../../helpers/paginationSortingHelper.ts").default(query);
 
   const [bookings, total] = await Promise.all([
