@@ -807,7 +807,9 @@ var createBooking = async (data) => {
     const existingStart = existing.scheduledAt.getHours() * 60 + existing.scheduledAt.getMinutes();
     const existingEnd = existingStart + existing.duration;
     if (bookingStartMinutes < existingEnd && bookingEndMinutes > existingStart) {
-      throw new Error("This time slot is already booked. Please choose a different time.");
+      throw new Error(
+        "This time slot is already booked. Please choose a different time."
+      );
     }
   }
   const totalPrice = Math.round(tutor.hourlyRate / 60 * data.duration * 100) / 100;
@@ -815,6 +817,27 @@ var createBooking = async (data) => {
   return await prisma.booking.create({
     data: { ...bookingData, totalPrice, status: "confirmed" },
     include: bookingInclude
+  });
+};
+var getBusySlots = async (tutorProfileId, dateStr) => {
+  const dayStart = /* @__PURE__ */ new Date(`${dateStr}T00:00:00`);
+  const dayEnd = /* @__PURE__ */ new Date(`${dateStr}T23:59:59`);
+  const bookings = await prisma.booking.findMany({
+    where: {
+      tutorProfileId,
+      status: { not: "cancelled" },
+      scheduledAt: { gte: dayStart, lte: dayEnd }
+    },
+    select: { scheduledAt: true, duration: true },
+    orderBy: { scheduledAt: "asc" }
+  });
+  return bookings.map((b) => {
+    const start = b.scheduledAt;
+    const end = new Date(start.getTime() + b.duration * 60 * 1e3);
+    return {
+      start: start.toISOString(),
+      end: end.toISOString()
+    };
   });
 };
 var getMyBookings = async (userId, role) => {
@@ -876,6 +899,7 @@ var getAllBookings = async (query) => {
 };
 var bookingService = {
   createBooking,
+  getBusySlots,
   getMyBookings,
   getBookingById,
   updateStatus,
@@ -950,15 +974,38 @@ var updateStatus2 = async (req, res, next) => {
     next(e);
   }
 };
+var getBusySlots2 = async (req, res) => {
+  try {
+    const { tutorProfileId } = req.params;
+    const { date } = req.query;
+    if (!date || typeof date !== "string") {
+      return res.status(400).json({ message: "date query param (YYYY-MM-DD) is required" });
+    }
+    const result = await bookingService.getBusySlots(
+      Number(tutorProfileId),
+      date
+    );
+    res.status(200).json({ data: result });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : "Failed to fetch busy slots";
+    res.status(400).json({ error: errorMessage, details: e });
+  }
+};
 var BookingController = {
   createBooking: createBooking2,
   getMyBookings: getMyBookings2,
   getBookingById: getBookingById2,
-  updateStatus: updateStatus2
+  updateStatus: updateStatus2,
+  getBusySlots: getBusySlots2
 };
 
 // src/modules/booking/booking.router.ts
 var router4 = express4.Router();
+router4.get(
+  "/tutor/:tutorProfileId/busy",
+  auth_default("student" /* STUDENT */),
+  BookingController.getBusySlots
+);
 router4.post("/", auth_default("student" /* STUDENT */), BookingController.createBooking);
 router4.get(
   "/",

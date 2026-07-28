@@ -72,46 +72,44 @@ const createBooking = async (data: {
     const availableFrom = fromH * 60 + fromM;
     const availableTo = toH * 60 + toM;
 
-    if (
-      bookingStartMinutes < availableFrom ||
-      bookingEndMinutes > availableTo
-    ) {
+    if (bookingStartMinutes < availableFrom || bookingEndMinutes > availableTo) {
       throw new Error(
         `Tutor is only available from ${dayAvailability.from} to ${dayAvailability.to} on ${bookingDay}`,
       );
     }
   }
 
-//-------------------------------------------------------------------
-// Check for conflicting bookings
-const bookingStartMinutes = data.startTime
-  ? timeStringToMinutes(data.startTime)
-  : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
-const bookingEndMinutes = bookingStartMinutes + data.duration;
+  // Check for conflicting bookings
+  const bookingStartMinutes = data.startTime
+    ? timeStringToMinutes(data.startTime)
+    : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
+  const bookingEndMinutes = bookingStartMinutes + data.duration;
 
-// Get all confirmed bookings for this tutor on the same day
-const startOfDay = new Date(data.scheduledAt);
-startOfDay.setHours(0, 0, 0, 0);
-const endOfDay = new Date(data.scheduledAt);
-endOfDay.setHours(23, 59, 59, 999);
+  const startOfDay = new Date(data.scheduledAt);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(data.scheduledAt);
+  endOfDay.setHours(23, 59, 59, 999);
 
-const existingBookings = await prisma.booking.findMany({
-  where: {
-    tutorProfileId: data.tutorProfileId,
-    status: "confirmed",
-    scheduledAt: { gte: startOfDay, lte: endOfDay },
-  },
-});
+  const existingBookings = await prisma.booking.findMany({
+    where: {
+      tutorProfileId: data.tutorProfileId,
+      status: "confirmed",
+      scheduledAt: { gte: startOfDay, lte: endOfDay },
+    },
+  });
 
-for (const existing of existingBookings) {
-  const existingStart = existing.scheduledAt.getHours() * 60 + existing.scheduledAt.getMinutes();
-  const existingEnd = existingStart + existing.duration;
+  for (const existing of existingBookings) {
+    const existingStart =
+      existing.scheduledAt.getHours() * 60 + existing.scheduledAt.getMinutes();
+    const existingEnd = existingStart + existing.duration;
 
-  if (bookingStartMinutes < existingEnd && bookingEndMinutes > existingStart) {
-    throw new Error("This time slot is already booked. Please choose a different time.");
+    if (bookingStartMinutes < existingEnd && bookingEndMinutes > existingStart) {
+      throw new Error(
+        "This time slot is already booked. Please choose a different time.",
+      );
+    }
   }
-}
-//-------------------------------------------------------------------------
+
   const totalPrice =
     Math.round((tutor.hourlyRate / 60) * data.duration * 100) / 100;
 
@@ -121,6 +119,33 @@ for (const existing of existingBookings) {
   return await prisma.booking.create({
     data: { ...bookingData, totalPrice, status: "confirmed" },
     include: bookingInclude,
+  });
+};
+
+// Returns busy time ranges for a tutor on a given date (YYYY-MM-DD).
+// Only exposes start/end — no student info — since it's read by students
+// checking availability, not tutors/admins reviewing bookings.
+const getBusySlots = async (tutorProfileId: number, dateStr: string) => {
+  const dayStart = new Date(`${dateStr}T00:00:00`);
+  const dayEnd = new Date(`${dateStr}T23:59:59`);
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      tutorProfileId,
+      status: { not: "cancelled" },
+      scheduledAt: { gte: dayStart, lte: dayEnd },
+    },
+    select: { scheduledAt: true, duration: true },
+    orderBy: { scheduledAt: "asc" },
+  });
+
+  return bookings.map((b) => {
+    const start = b.scheduledAt;
+    const end = new Date(start.getTime() + b.duration * 60 * 1000);
+    return {
+      start: start.toISOString(),
+      end: end.toISOString(),
+    };
   });
 };
 
@@ -209,6 +234,7 @@ const getAllBookings = async (query: {
 
 export const bookingService = {
   createBooking,
+  getBusySlots,
   getMyBookings,
   getBookingById,
   updateStatus,

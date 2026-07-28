@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-// import { BookingStatus } from "../../generated/prisma/enums";
 import { bookingService } from "./booking.service";
 import { BookingStatus } from "../../generated/enums";
 
@@ -83,9 +82,33 @@ const updateStatus = async (
   }
 };
 
+const getBusySlots = async (req: Request, res: Response) => {
+  try {
+    const { tutorProfileId } = req.params;
+    const { date } = req.query;
+
+    if (!date || typeof date !== "string") {
+      return res
+        .status(400)
+        .json({ message: "date query param (YYYY-MM-DD) is required" });
+    }
+
+    const result = await bookingService.getBusySlots(
+      Number(tutorProfileId),
+      date,
+    );
+    res.status(200).json({ data: result });
+  } catch (e) {
+    const errorMessage =
+      e instanceof Error ? e.message : "Failed to fetch busy slots";
+    res.status(400).json({ error: errorMessage, details: e });
+  }
+};
+
 export const BookingController = {
   createBooking,
   getMyBookings,
   getBookingById,
   updateStatus,
+  getBusySlots,
 };
