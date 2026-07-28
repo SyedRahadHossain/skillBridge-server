@@ -778,16 +778,36 @@ var createBooking = async (data) => {
     if (!dayAvailability) {
       throw new Error(`Tutor is not available on ${bookingDay2}`);
     }
-    const bookingStartMinutes = data.startTime ? timeStringToMinutes(data.startTime) : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
-    const bookingEndMinutes = bookingStartMinutes + data.duration;
+    const bookingStartMinutes2 = data.startTime ? timeStringToMinutes(data.startTime) : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
+    const bookingEndMinutes2 = bookingStartMinutes2 + data.duration;
     const [fromH = 0, fromM = 0] = dayAvailability.from.split(":").map(Number);
     const [toH = 23, toM = 59] = dayAvailability.to.split(":").map(Number);
     const availableFrom = fromH * 60 + fromM;
     const availableTo = toH * 60 + toM;
-    if (bookingStartMinutes < availableFrom || bookingEndMinutes > availableTo) {
+    if (bookingStartMinutes2 < availableFrom || bookingEndMinutes2 > availableTo) {
       throw new Error(
         `Tutor is only available from ${dayAvailability.from} to ${dayAvailability.to} on ${bookingDay2}`
       );
+    }
+  }
+  const bookingStartMinutes = data.startTime ? timeStringToMinutes(data.startTime) : data.scheduledAt.getHours() * 60 + data.scheduledAt.getMinutes();
+  const bookingEndMinutes = bookingStartMinutes + data.duration;
+  const startOfDay = new Date(data.scheduledAt);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(data.scheduledAt);
+  endOfDay.setHours(23, 59, 59, 999);
+  const existingBookings = await prisma.booking.findMany({
+    where: {
+      tutorProfileId: data.tutorProfileId,
+      status: "confirmed",
+      scheduledAt: { gte: startOfDay, lte: endOfDay }
+    }
+  });
+  for (const existing of existingBookings) {
+    const existingStart = existing.scheduledAt.getHours() * 60 + existing.scheduledAt.getMinutes();
+    const existingEnd = existingStart + existing.duration;
+    if (bookingStartMinutes < existingEnd && bookingEndMinutes > existingStart) {
+      throw new Error("This time slot is already booked. Please choose a different time.");
     }
   }
   const totalPrice = Math.round(tutor.hourlyRate / 60 * data.duration * 100) / 100;
