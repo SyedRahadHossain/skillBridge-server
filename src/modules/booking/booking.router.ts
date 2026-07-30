@@ -4,7 +4,12 @@ import auth, { UserRole } from "../../middlewares/auth";
 
 const router = express.Router();
 
-// Only logged-in students can see a tutor's booked time slots
+router.get(
+  "/tutor/:tutorProfileId/busy-range",
+  auth(UserRole.STUDENT),
+  BookingController.getBusySlotsRange,
+);
+
 router.get(
   "/tutor/:tutorProfileId/busy",
   auth(UserRole.STUDENT),

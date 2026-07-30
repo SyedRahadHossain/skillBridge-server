@@ -121,7 +121,37 @@ const createBooking = async (data: {
     include: bookingInclude,
   });
 };
-
+// Returns busy ranges for a tutor across a date range (for calendar month view)
+const getBusySlotsRange = async (
+  tutorProfileId: number,
+  fromDateStr: string,
+  toDateStr: string,
+) => {
+  const rangeStart = new Date(`${fromDateStr}T00:00:00`);
+  const rangeEnd = new Date(`${toDateStr}T23:59:59`);
+ 
+  const bookings = await prisma.booking.findMany({
+    where: {
+      tutorProfileId,
+      status: { not: "cancelled" },
+      scheduledAt: { gte: rangeStart, lte: rangeEnd },
+    },
+    select: { scheduledAt: true, duration: true },
+    orderBy: { scheduledAt: "asc" },
+  });
+ 
+  // Group by date string (YYYY-MM-DD)
+  const byDate: Record<string, { start: string; end: string }[]> = {};
+  for (const b of bookings) {
+    const dateKey = b.scheduledAt.toISOString().split("T")[0]!;
+    const start = b.scheduledAt;
+    const end = new Date(start.getTime() + b.duration * 60 * 1000);
+    if (!byDate[dateKey]) byDate[dateKey] = [];
+    byDate[dateKey].push({ start: start.toISOString(), end: end.toISOString() });
+  }
+ 
+  return byDate;
+};
 // Returns busy time ranges for a tutor on a given date (YYYY-MM-DD).
 // Only exposes start/end — no student info — since it's read by students
 // checking availability, not tutors/admins reviewing bookings.
@@ -234,6 +264,7 @@ const getAllBookings = async (query: {
 
 export const bookingService = {
   createBooking,
+  getBusySlotsRange,
   getBusySlots,
   getMyBookings,
   getBookingById,

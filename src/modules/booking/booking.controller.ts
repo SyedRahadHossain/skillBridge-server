@@ -81,7 +81,31 @@ const updateStatus = async (
     next(e);
   }
 };
+const getBusySlotsRange = async (req: Request, res: Response) => {
+  try {
+    const { tutorProfileId } = req.params;
+    const { from, to } = req.query;
 
+    if (!from || !to || typeof from !== "string" || typeof to !== "string") {
+      return res
+        .status(400)
+        .json({
+          message: "from and to query params (YYYY-MM-DD) are required",
+        });
+    }
+
+    const result = await bookingService.getBusySlotsRange(
+      Number(tutorProfileId),
+      from,
+      to,
+    );
+    res.status(200).json({ data: result });
+  } catch (e) {
+    const errorMessage =
+      e instanceof Error ? e.message : "Failed to fetch busy range";
+    res.status(400).json({ error: errorMessage, details: e });
+  }
+};
 const getBusySlots = async (req: Request, res: Response) => {
   try {
     const { tutorProfileId } = req.params;
@@ -110,5 +134,6 @@ export const BookingController = {
   getMyBookings,
   getBookingById,
   updateStatus,
+  getBusySlotsRange,
   getBusySlots,
 };
